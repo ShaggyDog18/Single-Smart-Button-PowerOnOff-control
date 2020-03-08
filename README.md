@@ -1,5 +1,4 @@
-# PowerOnOff-MasterMod
-Push-Button-On-Off-Control-ATtiny13/25/85
+# Push-Button-On-Off-Control-ATtiny13/25/85
 ------
 Smart Power ON/OFF Button: #173-ATTiny85-Push-Button-On-Off-control
 Developped by Ralph S Bacon: https://youtu.be/S2y1oAVmxdA 
