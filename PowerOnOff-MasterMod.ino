@@ -134,8 +134,10 @@ unsigned long millisOnOffTime = 0;
 void powerDownLedFlash();
 void shutDownPower();
 void enableInterruptForOnOffButton(void);
-void enablePCInterruptForKillPin(void);
-void disablePCInterruptForKillPin(void);
+#ifdef ALLOW_EXTERNAL_KILL_REQUEST
+  void enablePCInterruptForKillPin(void);
+  void disablePCInterruptForKillPin(void);
+#endif
 
 
 //mySerial comms - plug in a USB-2-mySerial device to PB0 (pin #5) for Attiny85
