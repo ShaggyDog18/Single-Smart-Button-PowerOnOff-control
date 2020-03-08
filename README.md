@@ -1,6 +1,4 @@
-# Push-Button-On-Off-Control-ATtiny13/25/85
- Push-Button-On-Off-Control-ATtiny13/25/85
-=====
+#Push-Button-On-Off-Control-ATtiny13/25/85
 Smart Power ON/OFF Button: #173-ATTiny85-Push-Button-On-Off-control
 Developped by Ralph S Bacon: https://youtu.be/S2y1oAVmxdA 
 Reference to the Ralph's project: https://github.com/RalphBacon/173-ATTiny85-Push-Button-On-Off-control
@@ -20,7 +18,7 @@ have different pins for INT0 interrupt:
 thus, I shifted POO button pin from PB2 to PB1 and 
                        LED pin from PB1 to PB0
 
-                        ATtiny13A
+                      ATtiny13A
 PIN 1 Reset             +-\/-+
                 PB5 - 1 |*   | 8 - VCC
  KILL pulse <-> PB3 - 2 |    | 7 - PB2       -> debug only: serial out
@@ -39,7 +37,7 @@ PIN 1 Reset             +-\/-+
 Can be also compiled for Atmega328 just for test purpose (without sleep function).
 
 
-Modfications Log: 
+#Modfications Log: 
  - Re-done re-code application algorithm using a Finite-state Machine Concept: https://en.wikipedia.org/wiki/Finite-state_machine
  - Ported to Attiny13A microController; use MicroCore environment
  - Added SLEEP_MODE_PWR_DOWN for extremely low power consumptoin (important for gadgets run on batteries) 
