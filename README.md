@@ -47,4 +47,4 @@ Modfications Log:
    sending a request pulse to KILL_PIN 
  - Added a new feature: if PowerOnOff button is pressed and released followed with no confirmation from the main uC, 
    then it gets back to ON_STATE after a short tomeout and start-up delay; 
-   Essentially, ready for the next attempt for power off or Emergency Shutdown 
+   Essentially, ready for the next attempt for power off or Emergency Shutdown  
