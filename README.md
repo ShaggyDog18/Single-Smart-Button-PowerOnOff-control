@@ -1,4 +1,4 @@
-# Push-Button-On-Off-Control-ATtiny13/25/85
+# Push-Button-On-Off-Control-ATtiny13/25/45/85
 Smart Power ON/OFF Button: #173-ATTiny85-Push-Button-On-Off-control
 Developped by Ralph S Bacon: https://youtu.be/S2y1oAVmxdA 
 Reference to the Ralph's project: https://github.com/RalphBacon/173-ATTiny85-Push-Button-On-Off-control
@@ -26,7 +26,7 @@ PIN 1 Reset             +-\/-+
                 GNG   4 |    | 5 - PB0       -> output:Power LED (optional)
                         +----+
 
-                  ATtiny25 / ATtiny85 
+            ATtiny25 / ATtiny45 / ATtiny85 
 PIN 1 Reset             +-\/-+
                 PB5 - 1 |*   | 8 - VCC
  KILL pulse <-> PB3 - 2 |    | 7 - PB2 (INT0) <- input: Power On/Off Button          
@@ -39,13 +39,13 @@ Can be also compiled for Atmega328 just for test purpose (without sleep function
 
 # Modfications Log: 
  - Re-done re-code application algorithm using a Finite-state Machine Concept: https://en.wikipedia.org/wiki/Finite-state_machine
- - Ported to Attiny13A microController; use MicroCore environment
+ - Ported to ATtiny13A microController; use MicroCore environment
  - Added SLEEP_MODE_PWR_DOWN for extremely low power consumptoin (important for gadgets run on batteries) 
- - Added an option of initiate a power off procedure by Slave microController by 
-   sending a request pulse to KILL_PIN 
+ - Added an option of initiating a power off procedure by main microController (uC) by 
+   sending a "Power Off" request pulse to KILL_PIN bus 
  - Added a new feature: if PowerOnOff button is pressed and released followed with no confirmation from the main uC, 
    then it gets back to ON_STATE after a short tomeout and start-up delay; 
-   Essentially, ready for the next attempt for power off or Emergency Shutdown 
+   Essentially, it becomes ready to the next attempt for Power Off or Emergency Shutdown 
 
 # EasyEDA PCB links:
 EasyEDA links to universal PCBs (compatible with ATtinny13/25/45/85):
