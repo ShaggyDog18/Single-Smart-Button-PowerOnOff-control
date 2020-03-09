@@ -38,6 +38,12 @@
 //
 //============
 // Can be also compiled for Atmega328 just for test purpose (without sleep function).
+//============
+// EasyEDA links to universal PCBs (compatible with ATtinny13/25/45/85):
+// - Small MOSFET AO3401A, up to 4A load: https://easyeda.com/Sergiy/smart-power-switch-attiny13
+// - Dual  MOSFET AO4606,  up to 6A load: https://easyeda.com/Sergiy/smart-power-switch-attiny13_copy_copy
+// - Powerful MOSFET AO4407A,  up to 10A: https://easyeda.com/Sergiy/smart-power-switch-attiny13_copy
+//============
 //
 /*
 Modfications Log: 
@@ -85,9 +91,9 @@ Modfications Log:
 //--------------------
 // INT0 is the only interrupt that can be configured for HIGH, LOW; others are PIN_CHANGE only
 #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) 
-  #define INT_PIN PB1  // PB2-for Attiny85  // Power On/Off button (POO)
-  #define PWR_LED PB0  // PB1-for Attiny85  // Power ON LED pin (will flash on shutdown)
-#elif defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) // Interrupt pin PB2 aka PCINT2 aka physiacal pin #7
+  #define INT_PIN PB1  // Power On/Off button (POO) // PB2-for Attiny85 
+  #define PWR_LED PB0  // Power ON LED pin (will flash on shutdown) // PB1-for Attiny85
+#elif defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
   #define INT_PIN PB2  // Power On/Off button (POO) 
   #define PWR_LED PB1  // Power ON LED  
 #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 
@@ -100,7 +106,8 @@ Modfications Log:
 // Output LOW pin to keep MOSFET running
 #define PWR_PIN PB4  // PINB4 -> Atmega 328 pin 12
 
-// KILL interrupt for extermal MAIN microcontroller uC
+// KILL communication bus: signal goes to main uC for shutdown confirmtion, 
+// as well as incoming interrupt for extermal shut down request by main uC
 #define KILL_PIN PB3  // PINB3 -> Atmega 328 pin 11
 
 // ISR variables for POO Button
@@ -172,7 +179,7 @@ void setup() {
   pinMode( PWR_PIN, OUTPUT );  // Gate of driving N-ch MOSFET
   pinMode( PWR_LED, OUTPUT );  // Power ON LED (optional)
 
-  // initial state: switch on instantly - do that in POWER_ON_PROCESS state; no need of ding it here in setup()
+  // initial state: switch on instantly - do that in POWER_ON_PROCESS state; no need of doing it here in setup()
   //bitSet( PORTB, PWR_PIN );
   //bitSet( PORTB, PWR_LED );
   
@@ -185,12 +192,12 @@ void setup() {
     #endif
 
     #ifdef ALLOW_EXTERNAL_KILL_REQUEST
-      //  Allow Pin Change Interrupt in general // Attiny13 DataSheet, Page 49
+      //  Allow PCI - Pin Change Interrupt in general // Attiny13 DataSheet, Page 49
       GIMSK |= _BV(PCIE);
     #endif
   #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 
     #ifdef ALLOW_EXTERNAL_KILL_REQUEST
-      // Allow pin change interrupt for PORTB
+      // Allow PCI - pin change interrupt for PORTB
       PCICR |= _BV(PCIE0);  
     #endif
   #endif
@@ -299,7 +306,7 @@ ISR(PCINT0_vect) {  // PCI vect0 is for PCIinterrupt for PortB
   
   #ifdef ENABLE_SLEEP_MODE
   #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__)  
-    // wake up
+    // wake up, do not sleep any more...-> shut down :-)
     sleep_disable();
   #endif 
   #endif
@@ -457,7 +464,7 @@ void loop() {
 void powerDownLedFlash() {
   static unsigned long flashMillis = millis();
   if( millis() > flashMillis + 200 ) {
-    PORTB ^= _BV( PWR_LED ); // have to invert LED twice in order to keep it ON after exitiing the function
+    PORTB ^= _BV( PWR_LED ); // have to invert LED twice in order to keep it ON after exiting the function
     _delay_ms(50);
     PORTB ^= _BV( PWR_LED );
     flashMillis = millis();  

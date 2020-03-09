@@ -46,3 +46,9 @@ Can be also compiled for Atmega328 just for test purpose (without sleep function
  - Added a new feature: if PowerOnOff button is pressed and released followed with no confirmation from the main uC, 
    then it gets back to ON_STATE after a short tomeout and start-up delay; 
    Essentially, ready for the next attempt for power off or Emergency Shutdown 
+
+# EasyEDA PCB links:
+EasyEDA links to universal PCBs (compatible with ATtinny13/25/45/85):
+ - Small MOSFET AO3401A, up to 4A load: https://easyeda.com/Sergiy/smart-power-switch-attiny13
+ - Dual  MOSFET AO4606,  up to 6A load: https://easyeda.com/Sergiy/smart-power-switch-attiny13_copy_copy
+ - Powerful MOSFET AO4407A,  up to 10A: https://easyeda.com/Sergiy/smart-power-switch-attiny13_copy
