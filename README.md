@@ -21,31 +21,21 @@ thus, I shifted POO button pin from PB2 to PB1 and
                        LED pin from PB1 to PB0
 
                       ATtiny13A
-
 	PIN 1 Reset             +-\/-+
-
-					PB5 - 1 |*   | 8 - VCC
-
+	                PB5 - 1 |*   | 8 - VCC
 	KILL pulse  <-> PB3 - 2 |    | 7 - PB2       -> debug only: serial out
-
 	PowerOn/Off  <- PB4 - 3 |    | 6 - PB1(INT0) <- input: Power On/Off Button
-          
-					GNG   4 |    | 5 - PB0       -> output:Power LED (optional)
-							+----+
+	                GNG   4 |    | 5 - PB0       -> output:Power LED (optional)
+	                        +----+
 
 
             ATtiny25 / ATtiny45 / ATtiny85 
-
 	PIN 1 Reset             +-\/-+
-
-					PB5 - 1 |*   | 8 - VCC
-
+	                PB5 - 1 |*   | 8 - VCC
 	KILL pulse  <-> PB3 - 2 |    | 7 - PB2 (INT0) <- input: Power On/Off Button  
-        
 	PowerOn/Off  <- PB4 - 3 |    | 6 - PB1        -> output:Power LED (optional)
-
-					GNG   4 |    | 5 - PB0        -> debug only: serial out
-							+----+
+	                GNG   4 |    | 5 - PB0        -> debug only: serial out
+	                        +----+
 
 
 Can be also compiled for Atmega328 just for test purpose (without sleep function).
