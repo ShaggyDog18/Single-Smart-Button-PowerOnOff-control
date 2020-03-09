@@ -83,19 +83,16 @@ Modfications Log:
 //--------------------
 // DEFINES 
 //--------------------
-// Interrupt pin PB1 aka PCINT1 aka physiacal pin #6
-// this is the only pin that can be configured for HIGH, LOW interrupt; others are PIN_CHANGE only
+// INT0 is the only interrupt that can be configured for HIGH, LOW; others are PIN_CHANGE only
 #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) 
-  #define INT_PIN PB1  // PB2-for Attiny85  // Power On/Off button (POO) -> Atmega 328 pin
-  // Power ON LED pin (will flash on shutdown)
-  #define PWR_LED PB0 // PB1-for Attiny85  // PINB1 -> Atmega 328 pin 8
+  #define INT_PIN PB1  // PB2-for Attiny85  // Power On/Off button (POO)
+  #define PWR_LED PB0  // PB1-for Attiny85  // Power ON LED pin (will flash on shutdown)
 #elif defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) // Interrupt pin PB2 aka PCINT2 aka physiacal pin #7
-  #define INT_PIN PB2 // Power On/Off button (POO) -> Atmega 328 pin 9
-  // Power ON LED pin (will flash on shutdown)
-  #define PWR_LED PB1 // PINB1 -> Atmega 328 pin 8
+  #define INT_PIN PB2  // Power On/Off button (POO) 
+  #define PWR_LED PB1  // Power ON LED  
 #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 
-  #define INT_PIN PD2 // INT0 interrupt pin -> Atmega 328 pin 2
-  #define PWR_LED PB5 // Pin 13 with Build in LED
+  #define INT_PIN PD2  // INT0 interrupt pin -> Atmega 328 pin 2
+  #define PWR_LED PB5  // Pin 13 with Build in LED
 #else
   #error "Unsupported type of microController"
 #endif
@@ -143,7 +140,7 @@ void enableInterruptForOnOffButton(void);
 
 //mySerial comms - plug in a USB-2-mySerial device to PB0 (pin #5) for Attiny85
 #ifdef SERIAL_DEBUG
-  #if defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny25__)
+  #if defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__)
     SendOnlySoftwareSerial Serial( PB0 );
   #elif defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) 
 	  SendOnlySoftwareSerial Serial( PB2 ); // did not test :-(
