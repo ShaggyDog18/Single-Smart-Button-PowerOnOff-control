@@ -7,7 +7,9 @@
 //
 // uController: ATtiny13A
 // Environment: MicroCore, 600kHz internal clock (also set up by fuses), BOD disabled, Micros enabled 
-// Size with both ExternalControll and Sleep features: 842 bytes / 32 bytes -> great for Attiny13 ! 
+// 600kHz low_fuses=0x29
+// 
+// Size with both ExternalControll and Sleep features: 838 bytes / 32 bytes -> great for Attiny13 ! 
 // 
 // 100% compatible at firmware level if compiled for ATtiny25/85!
 // Incompatible with the original author's solution at pins/PCB level because ATtiny13 and ATtiny25/85
@@ -26,13 +28,13 @@
 //                 GNG   4 |    | 5 - PB0       -> output:Power LED (optional)
 //                         +----+
 //
-//                   ATtiny25 / ATtiny85 
+//              ATtiny25 / ATtiny45 / ATtiny85 
 // PIN 1 Reset             +-\/-+
 //                 PB5 - 1 |*   | 8 - VCC
 //  KILL pulse <-> PB3 - 2 |    | 7 - PB2 (INT0) <- input: Power On/Off Button          
 //  PowerOn/Off <- PB4 - 3 |    | 6 - PB1        -> output:Power LED (optional)
 //                 GNG   4 |    | 5 - PB0        -> debug only: serial out
-//                         +----+//
+//                         +----+
 //
 //============
 // Can be also compiled for Atmega328 just for test purpose (without sleep function).
@@ -47,6 +49,7 @@ Modfications Log:
  - Added a new feature: if PowerOnOff button is pressed and released followed with no confirmation from the main uC, 
    then it gets back to ON_STATE after a short tomeout and start-up delay; 
    Essentially, ready for the next attempt for power off or Emergency Shutdown 
+ - Added __AVR_ATtiny45__ as an option
 */
 
 //--------------------
@@ -86,7 +89,7 @@ Modfications Log:
   #define INT_PIN PB1  // PB2-for Attiny85  // Power On/Off button (POO) -> Atmega 328 pin
   // Power ON LED pin (will flash on shutdown)
   #define PWR_LED PB0 // PB1-for Attiny85  // PINB1 -> Atmega 328 pin 8
-#elif defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny25__) // Interrupt pin PB2 aka PCINT2 aka physiacal pin #7
+#elif defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) // Interrupt pin PB2 aka PCINT2 aka physiacal pin #7
   #define INT_PIN PB2 // Power On/Off button (POO) -> Atmega 328 pin 9
   // Power ON LED pin (will flash on shutdown)
   #define PWR_LED PB1 // PINB1 -> Atmega 328 pin 8
@@ -172,11 +175,11 @@ void setup() {
   pinMode( PWR_PIN, OUTPUT );  // Gate of driving N-ch MOSFET
   pinMode( PWR_LED, OUTPUT );  // Power ON LED (optional)
 
-  // initial state: switch on instantly. So, essentially, we do not need a POWER_ON_PROCESS state, but keep it for beauty;
-  bitSet( PORTB, PWR_PIN );
-  bitSet( PORTB, PWR_LED );
+  // initial state: switch on instantly - do that in POWER_ON_PROCESS state; no need of ding it here in setup()
+  //bitSet( PORTB, PWR_PIN );
+  //bitSet( PORTB, PWR_LED );
   
-  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny25__)
+  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__)
     // For low power consumption: 
     ADCSRA &= ~_BV(ADEN); // set ADC OFF
     ACSR |= _BV(ACD);     // switch off Comparator
@@ -184,7 +187,7 @@ void setup() {
       set_sleep_mode(SLEEP_MODE_PWR_DOWN);  // set up sleep mode for Attiny13
     #endif
 
-    #if defined( ALLOW_EXTERNAL_KILL_REQUEST )
+    #ifdef ALLOW_EXTERNAL_KILL_REQUEST
       //  Allow Pin Change Interrupt in general // Attiny13 DataSheet, Page 49
       GIMSK |= _BV(PCIE);
     #endif
@@ -199,7 +202,7 @@ void setup() {
 
 #ifdef ALLOW_EXTERNAL_KILL_REQUEST
 void enablePCInterruptForKillPin(void){ // enable PC Interrupt for input pin PB3  
-  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__)  || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny25__) 
+  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__)  || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
     PCMSK |= _BV( PCINT3 );  // KILL_PIN is at PB3
   #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 
     PCMSK0 |= _BV( PCINT3 ); // pin11, PCINT3 is in the PCMSK0; set PCI for pin 11
@@ -207,7 +210,7 @@ void enablePCInterruptForKillPin(void){ // enable PC Interrupt for input pin PB3
 }
 
 void disablePCInterruptForKillPin(void){ // disable PC Interrupt for input pin PB3 
-  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__)  || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny25__)
+  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__)  || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__)
     PCMSK &= ~_BV( PCINT3 );  // KILL_PIN is at PB3
   #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 
     PCMSK0 &= ~_BV( PCINT3 ); // pin11, PCINT3 is in the PCMSK0; disable PCI for pin 11
@@ -218,7 +221,7 @@ void disablePCInterruptForKillPin(void){ // disable PC Interrupt for input pin P
 
 void enableInterruptForOnOffButton(void){
   // The Arduino preferred syntax of attaching interrupt not possible for AtTiny13A 
-  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__)  || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny25__) 
+  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__)  || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
     // We want only on FALLING (not LOW, if possible) set bits 1:0 to zero
     // MCUCR &= ~(_BV(ISC01) | _BV(ISC00)); // LOW
     // GIFR  |= bit(INTF0);  // clear any pending INT0
@@ -239,7 +242,7 @@ void enableInterruptForOnOffButton(void){
 //
 //------
 // Standard interrupt vector (only on LOW / FALLING )
-#if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny25__) 
+#if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
   ISR( INT0_vect ) {
 #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__)  // ATMega 328 for testing
   void myISR(void) {
@@ -249,7 +252,7 @@ void enableInterruptForOnOffButton(void){
   #endif
 
   #ifdef ENABLE_SLEEP_MODE
-  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny25__) 
+  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
     // wake up
     sleep_disable();
   #endif
@@ -265,7 +268,7 @@ void enableInterruptForOnOffButton(void){
   if( millis() > prevMillis + BUTTON_DEBOUNCE_TIME ) {
     // disble itself: disable INT0 ext interrupt for POO button
     // untill shutDown completed (when we can power up again )
-    #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny25__) 
+    #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
       GIMSK &= ~_BV(INT0);  // disable INT0 interrupt  
     #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 
       detachInterrupt(0);
@@ -284,21 +287,21 @@ void enableInterruptForOnOffButton(void){
 #ifdef ALLOW_EXTERNAL_KILL_REQUEST
 ISR(PCINT0_vect) {  // PCI vect0 is for PCIinterrupt for PortB
   // disable itself; disable PC interrupt for pin PB3  
-  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__)  || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny25__)
-    PCMSK &= ~_BV( PCINT3 );  // KILL_PIN is at PB3
+  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__)  || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__)
+    PCMSK &= ~_BV( PCINT3 );  // KILL_PIN
   #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 
     PCMSK0 &= ~_BV( PCINT3 ); // pin11, PCINT3 is in the PCMSK0; disable PCINT3 to trigger an interrupt on state change 
   #endif
     
   // disble INT0 ext interrupt for POO button
-  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny25__) 
+  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
     GIMSK &= ~_BV(INT0);  // disable INT0 interrupt   
   #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 
     detachInterrupt(0);
   #endif
   
   #ifdef ENABLE_SLEEP_MODE
-  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny25__)  
+  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__)  
     // wake up
     sleep_disable();
   #endif 
@@ -345,7 +348,7 @@ void loop() {
         stateMachine = ON_STATE;
 
         #ifdef ENABLE_SLEEP_MODE
-        #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny25__) 
+        #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
           // go to sleep
           sleep_enable();
           sleep_cpu();   
@@ -457,9 +460,9 @@ void loop() {
 void powerDownLedFlash() {
   static unsigned long flashMillis = millis();
   if( millis() > flashMillis + 200 ) {
-    PORTB ^= _BV( PWR_LED ); // have to invert LED twice in order to keep it ON after exitiing the fncetion
+    PORTB ^= _BV( PWR_LED ); // have to invert LED twice in order to keep it ON after exitiing the function
     _delay_ms(50);
-    PORTB ^= _BV( PWR_LED ); // have to invert LED twice in order to keep it ON after exitiing the fncetion 
+    PORTB ^= _BV( PWR_LED );
     flashMillis = millis();  
   }
 }
