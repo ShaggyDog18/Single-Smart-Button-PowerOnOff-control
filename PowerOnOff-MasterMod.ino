@@ -1,8 +1,9 @@
-// Smart Power ON/OFF Button: #173-ATTiny85-Push-Button-On-Off-control
-// Developped by Ralph S Bacon: https://youtu.be/S2y1oAVmxdA 
+// Initial development:
+//   Smart Power ON/OFF Button: #173-ATTiny85-Push-Button-On-Off-control
+// by Ralph S Bacon: https://youtu.be/S2y1oAVmxdA 
 //   https://github.com/RalphBacon/173-ATTiny85-Push-Button-On-Off-control
 //
-// Creatively modified alghorytms, introduced Finite-state Machine and ported to ATtiny13 
+// Creatively modified alghorytm, introduced a Finite-state Machine and ported to ATtiny13 
 // by ShaggyDog18@gmail.com, MAR-2020
 //
 // uController: ATtiny13A
@@ -54,8 +55,8 @@ Modfications Log:
    sending a request pulse to KILL_PIN 
  - Added a new feature: if PowerOnOff button is pressed and released followed with no confirmation from the main uC, 
    then it gets back to ON_STATE after a short tomeout and start-up delay; 
-   Essentially, ready for the next attempt for power off or Emergency Shutdown 
- - Added __AVR_ATtiny45__ as an option
+   Essentially, it becomes ready to the next attempt for Power Off or Emergency Shutdown 
+ - Added __AVR_ATtiny45__ and __AVR_ATtiny85__ as an options
 */
 
 //--------------------

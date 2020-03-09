@@ -1,9 +1,9 @@
 # Push-Button-On-Off-Control-ATtiny13/25/45/85
 Smart Power ON/OFF Button: #173-ATTiny85-Push-Button-On-Off-control
-Developped by Ralph S Bacon: https://youtu.be/S2y1oAVmxdA 
-Reference to the Ralph's project: https://github.com/RalphBacon/173-ATTiny85-Push-Button-On-Off-control
+Initial Development by Ralph S Bacon: https://youtu.be/S2y1oAVmxdA 
+Reference to Ralph's project: https://github.com/RalphBacon/173-ATTiny85-Push-Button-On-Off-control
 
-Creatively modified alghorytms, introduced Finite-state Machine and ported to ATtiny13 
+Creatively modified alghorytm, introduced a Finite-state Machine and ported to ATtiny13 
 by ShaggyDog18@gmail.com, MAR-2020
 
 uController: ATtiny13A
@@ -35,7 +35,6 @@ PIN 1 Reset             +-\/-+
                         +----+
 
 Can be also compiled for Atmega328 just for test purpose (without sleep function).
-
 
 # Modfications Log: 
  - Re-done re-code application algorithm using a Finite-state Machine Concept: https://en.wikipedia.org/wiki/Finite-state_machine
