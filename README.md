@@ -20,7 +20,7 @@ have different pins for INT0 interrupt:
 thus, I shifted POO button pin from PB2 to PB1 and 
                        LED pin from PB1 to PB0
 
-                      ATtiny13A
+                          ATtiny13A
 	PIN 1 Reset             +-\/-+
 	                PB5 - 1 |*   | 8 - VCC
 	KILL pulse  <-> PB3 - 2 |    | 7 - PB2       -> debug only: serial out
@@ -29,7 +29,7 @@ thus, I shifted POO button pin from PB2 to PB1 and
 	                        +----+
 
 
-            ATtiny25 / ATtiny45 / ATtiny85 
+                        ATtiny25/45/85 
 	PIN 1 Reset             +-\/-+
 	                PB5 - 1 |*   | 8 - VCC
 	KILL pulse  <-> PB3 - 2 |    | 7 - PB2 (INT0) <- input: Power On/Off Button  
