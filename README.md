@@ -1,6 +1,8 @@
 # Push-Button-On-Off-Control-ATtiny13/25/45/85
 Smart Power ON/OFF Button: #173-ATTiny85-Push-Button-On-Off-control
+
 Initial Development by Ralph S Bacon: https://youtu.be/S2y1oAVmxdA 
+
 Reference to Ralph's project: https://github.com/RalphBacon/173-ATTiny85-Push-Button-On-Off-control
 
 Creatively modified alghorytm, introduced a Finite-state Machine and ported to ATtiny13 
@@ -19,20 +21,34 @@ thus, I shifted POO button pin from PB2 to PB1 and
                        LED pin from PB1 to PB0
 
                       ATtiny13A
+
 PIN 1 Reset             +-\/-+
+
                 PB5 - 1 |*   | 8 - VCC
+
  KILL pulse <-> PB3 - 2 |    | 7 - PB2       -> debug only: serial out
- PowerOn/Off <- PB4 - 3 |    | 6 - PB1(INT0) <- input: Power On/Off Button          
+
+ PowerOn/Off <- PB4 - 3 |    | 6 - PB1(INT0) <- input: Power On/Off Button
+          
                 GNG   4 |    | 5 - PB0       -> output:Power LED (optional)
+
                         +----+
 
+
             ATtiny25 / ATtiny45 / ATtiny85 
+
 PIN 1 Reset             +-\/-+
+
                 PB5 - 1 |*   | 8 - VCC
- KILL pulse <-> PB3 - 2 |    | 7 - PB2 (INT0) <- input: Power On/Off Button          
+
+ KILL pulse <-> PB3 - 2 |    | 7 - PB2 (INT0) <- input: Power On/Off Button  
+        
  PowerOn/Off <- PB4 - 3 |    | 6 - PB1        -> output:Power LED (optional)
+
                 GNG   4 |    | 5 - PB0        -> debug only: serial out
+
                         +----+
+
 
 Can be also compiled for Atmega328 just for test purpose (without sleep function).
 
