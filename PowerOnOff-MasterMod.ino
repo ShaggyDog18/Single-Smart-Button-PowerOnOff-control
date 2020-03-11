@@ -68,7 +68,7 @@ Modfications Log:
 // Performs an instant shut down implying that all necessary shut down processes are already done.
 #define ALLOW_EXTERNAL_KILL_REQUEST
 
-#define ENABLE_SLEEP_MODE   // for Attiny13/25/85 only for extra low power consumption during operation
+#define ENABLE_SLEEP_MODE   // for Attiny13/25/45/85 only for extra low power consumption during operation
 
 //--------------------
 // INCLUDE SECTION
@@ -82,7 +82,7 @@ Modfications Log:
 #endif
 
 #ifdef SERIAL_DEBUG
-#if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny25__)
+#if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__)|| defined(__AVR_ATtiny25__)
   #include <SendOnlySoftwareSerial.h>
 #endif
 #endif
