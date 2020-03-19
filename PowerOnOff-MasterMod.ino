@@ -10,10 +10,10 @@
 // Environment: MicroCore, 600kHz internal clock (also set up by fuses), BOD disabled, Micros enabled 
 // 600kHz low_fuses=0x29
 // 
-// Size with both ExternalControll and Sleep features: 838 bytes / 32 bytes -> great for Attiny13 ! 
+// Size with both ExternalControl and Sleep features: 838 bytes / 32 bytes -> great for Attiny13 ! 
 // 
-// 100% compatible at firmware level if compiled for ATtiny25/85!
-// Incompatible with the original author's solution at pins/PCB level because ATtiny13 and ATtiny25/85
+// 100% compatible at firmware level if compiled for ATtiny25/45/85!
+// Incompatible with the original author's solution at pins/PCB level because ATtiny13 and ATtiny25/45/85
 // have different pins for INT0 interrupt:
 //    ATtiny85 - PB2
 //    ATtiny13 - PB1
@@ -56,7 +56,7 @@ Modfications Log:
  - Added a new feature: if PowerOnOff button is pressed and released followed with no confirmation from the main uC, 
    then it gets back to ON_STATE after a short tomeout and start-up delay; 
    Essentially, it becomes ready to the next attempt for Power Off or Emergency Shutdown 
- - Added __AVR_ATtiny45__ and __AVR_ATtiny85__ as an options
+ - Added __AVR_ATtiny25__ , __AVR_ATtiny45__ and __AVR_ATtiny85__ as valid options
 */
 
 //--------------------
@@ -65,7 +65,7 @@ Modfications Log:
 //#define SERIAL_DEBUG
 
 // Allow an external KILL/"Power Off" request that can come from the main uController (may have a "Power Off" item in a menu)
-// Performs an instant shut down implying that all necessary shut down processes are already done.
+// Performs an instant shut down implying that all necessary shut down processes are already performed by calling uC.
 #define ALLOW_EXTERNAL_KILL_REQUEST
 
 #define ENABLE_SLEEP_MODE   // for Attiny13/25/45/85 only for extra low power consumption during operation
@@ -78,7 +78,7 @@ Modfications Log:
 #include <avr/delay.h>
 
 #ifdef ENABLE_SLEEP_MODE
-#include <avr/sleep.h>
+  #include <avr/sleep.h>
 #endif
 
 #ifdef SERIAL_DEBUG
@@ -88,14 +88,14 @@ Modfications Log:
 #endif
 
 //--------------------
-// DEFINES 
+// DEFINES
 //--------------------
 // INT0 is the only interrupt that can be configured for HIGH, LOW; others are PIN_CHANGE only
 #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) 
-  #define INT_PIN PB1  // Power On/Off button (POO) // PB2-for Attiny85 
-  #define PWR_LED PB0  // Power ON LED pin (will flash on shutdown) // PB1-for Attiny85
+  #define INT_PIN PB1  // Power On/Off (POO) button
+  #define PWR_LED PB0  // Power ON LED pin (will flash on shutdown)
 #elif defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
-  #define INT_PIN PB2  // Power On/Off button (POO) 
+  #define INT_PIN PB2  // Power On/Off (POO) button 
   #define PWR_LED PB1  // Power ON LED  
 #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 
   #define INT_PIN PD2  // INT0 interrupt pin -> Atmega 328 pin 2
@@ -180,7 +180,7 @@ void setup() {
   pinMode( PWR_PIN, OUTPUT );  // Gate of driving N-ch MOSFET
   pinMode( PWR_LED, OUTPUT );  // Power ON LED (optional)
 
-  // initial state: switch on instantly - do that in POWER_ON_PROCESS state; no need of doing it here in setup()
+  // initial state: switch on instantly - do that in POWER_ON_PROCESS state; no need for doing it here in setup()
   //bitSet( PORTB, PWR_PIN );
   //bitSet( PORTB, PWR_LED );
   
@@ -258,7 +258,7 @@ void enableInterruptForOnOffButton(void){
 
   #ifdef ENABLE_SLEEP_MODE
   #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
-    // wake up
+    // wake up and disable sleep
     sleep_disable();
   #endif
   #endif
@@ -326,10 +326,8 @@ ISR(PCINT0_vect) {  // PCI vect0 is for PCIinterrupt for PortB
 void loop() {
   switch( stateMachine ) {
     case POWER_ON_PROCESS:
-      // Power pin to MOSFET gate (HIGH to turn on N-ch; LOW to turn on P-ch MOSFET)
-      bitSet( PORTB, PWR_PIN );
-      // Turn on Power LED to indicate we are up and running
-      bitSet( PORTB, PWR_LED );
+      bitSet( PORTB, PWR_PIN );  // Power pin to MOSFET gate (HIGH to turn on N-ch; LOW to turn on P-ch MOSFET)
+      bitSet( PORTB, PWR_LED );  // Turn on Power LED to indicate we are up and running
       #ifdef SERIAL_DEBUG
         Serial.println( "Power is ON" ); 
         Serial.println( "ShutDown requets not yet accepted" );
@@ -339,8 +337,7 @@ void loop() {
       break;
       
     case START_UP_DELAY:
-      // only after a few seconds we do allow a shutdown request to come
-      if( millis() > millisOnOffTime + MIN_ON_TIME ) {
+      if( millis() > millisOnOffTime + MIN_ON_TIME ) {  // only after a few seconds we do allow a shutdown request to come
         #ifdef SERIAL_DEBUG
           Serial.println("Shutdown request is now allowed." );
         #endif
@@ -363,13 +360,13 @@ void loop() {
       break;
       
     case ON_STATE:  // waiting for shut down request from either of channels: the POO button or request from main uC, if allowed
-      if( togglePowerRequest ) {
+      if( togglePowerRequest ) {	// shut down initiated by POO button
         #ifdef SERIAL_DEBUG
           Serial.println( "Shutdown request by POO Button" );
           _delay_ms(1000); // for debug only
         #endif
 
-        // Send a KILL command, a LOW 100mS pulse, to main microController (uC)
+        // Send a KILL command, a LOW 100mS pulse, to the main microController (uC)
         #ifdef SERIAL_DEBUG
           Serial.println("Sent KILL message to main uC for confirmation" );
         #endif
@@ -386,7 +383,7 @@ void loop() {
       }
       
       #ifdef ALLOW_EXTERNAL_KILL_REQUEST
-      if( externalShutDownRequest ) {
+      if( externalShutDownRequest ) {  // shut down initiated/requested by main uC
         #ifdef SERIAL_DEBUG
           Serial.println( "Shutdown request from main uC" );
           _delay_ms(1000); // for debug only
@@ -397,9 +394,8 @@ void loop() {
       break; 
       
     case SHUTDOWN_PROCESS:
-      // Flash the power LED to indicate we are in shutdown process
-      powerDownLedFlash();
-      if( togglePowerRequest ) {        // shut down was requestd by pressing POO button
+      powerDownLedFlash();  // Flash the power LED to indicate we are in shutdown process
+      if( togglePowerRequest ) {  // shut down was requestd by pressing POO button
         if( !digitalRead(KILL_PIN) ) {  // KILL pin is LOW -> confirmation pulse received 
                                         // main uC confirmed to KILL power
           #ifdef SERIAL_DEBUG
@@ -446,7 +442,7 @@ void loop() {
       }
       
       #ifdef ALLOW_EXTERNAL_KILL_REQUEST
-      if( externalShutDownRequest ) { // immediate shut down, request was received from uC
+      if( externalShutDownRequest ) { // immediate shut down, request was received from the main uC
         #ifdef SERIAL_DEBUG
           Serial.println( "Shuting down; requested by main uC" );
           _delay_ms(2000); // debug only
