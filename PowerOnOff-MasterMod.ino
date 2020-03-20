@@ -3,7 +3,7 @@
 // by Ralph S Bacon: https://youtu.be/S2y1oAVmxdA 
 //   https://github.com/RalphBacon/173-ATTiny85-Push-Button-On-Off-control
 //
-// Creatively modified alghorytm, introduced a Finite-state Machine and ported to ATtiny13 
+// Creatively modified algorithm, introduced a Finite-state Machine and ported to ATtiny13 
 // by ShaggyDog18@gmail.com, MAR-2020
 //
 // uController: ATtiny13A
@@ -15,8 +15,8 @@
 // 100% compatible at firmware level if compiled for ATtiny25/45/85!
 // Incompatible with the original author's solution at pins/PCB level because ATtiny13 and ATtiny25/45/85
 // have different pins for INT0 interrupt:
-//    ATtiny85 - PB2
-//    ATtiny13 - PB1
+//    ATtiny25/45/85 - PB2
+//    ATtiny13       - PB1
 // thus, I shifted POO button pin from PB2 to PB1 and 
 //                        LED pin from PB1 to PB0
 //
