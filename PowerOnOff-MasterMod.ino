@@ -46,6 +46,9 @@
 // - Powerful MOSFET AO4407A,  up to 10A: https://easyeda.com/Sergiy/smart-power-switch-attiny13_copy
 //============
 //
+// Known issues: 
+// 1)  none
+//
 /*
 Modfications Log: 
  - Re-done re-code application algorithm using a Finite-state Machine Concept: https://en.wikipedia.org/wiki/Finite-state_machine
@@ -123,13 +126,13 @@ volatile bool togglePowerRequest = false;
 unsigned long millisOnOffTime = 0;
 
 // How long to hold down POO button to force turn off (mS)
-#define KILL_TIME 4000  //mSec
+#define EMERGENCY_KILL_TIME 1000  //mSec
 
 // length of KILL pulse that to be sent to maim uC to request a KILL confirmation
 #define KILL_PULSE 100  // mSec
 
-// KILL time out - how long do we wait for KILL confirmation
-#define KILL_TIMEOUT 1000  // mSec
+// KILL time out - how long do we wait for KILL confirmation back from the main uC
+#define KILL_CONFIRMATION_TIMEOUT 1000  // mSec
 
 // Minimum time before shutDown request accepted (mS)
 #define MIN_ON_TIME 3000  // mSec
@@ -208,7 +211,8 @@ void setup() {
 #ifdef ALLOW_EXTERNAL_KILL_REQUEST
 void enablePCInterruptForKillPin(void){ // enable PC Interrupt for input pin PB3  
   #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__)  || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
-    PCMSK |= _BV( PCINT3 );  // KILL_PIN is at PB3
+    //PCMSK |= _BV( PCINT3 );  // KILL_PIN is at PB3
+    bitSet( PCMSK, PCINT3 );  // KILL_PIN is at PB3
   #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 
     PCMSK0 |= _BV( PCINT3 ); // pin11, PCINT3 is in the PCMSK0; set PCI for pin 11
   #endif  
@@ -216,7 +220,8 @@ void enablePCInterruptForKillPin(void){ // enable PC Interrupt for input pin PB3
 
 void disablePCInterruptForKillPin(void){ // disable PC Interrupt for input pin PB3 
   #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__)  || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__)
-    PCMSK &= ~_BV( PCINT3 );  // KILL_PIN is at PB3
+    //PCMSK &= ~_BV( PCINT3 );  // KILL_PIN is at PB3
+    bitClear( PCMSK, PCINT3 );  // KILL_PIN is at PB3
   #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 
     PCMSK0 &= ~_BV( PCINT3 ); // pin11, PCINT3 is in the PCMSK0; disable PCI for pin 11
   #endif
@@ -225,21 +230,24 @@ void disablePCInterruptForKillPin(void){ // disable PC Interrupt for input pin P
 
 
 void enableInterruptForOnOffButton(void){
+  cli();
   // The Arduino preferred syntax of attaching interrupt not possible for AtTiny13A 
   #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__)  || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
     // We want only on FALLING (not LOW, if possible) set bits 1:0 to zero
-    // MCUCR &= ~(_BV(ISC01) | _BV(ISC00)); // LOW
-    // GIFR  |= bit(INTF0);  // clear any pending INT0
-    // GIMSK |= bit(INT0);  // enable INT0
+    // MCUCR &= ~(1 << ISC00); //Set low level Interrupt
+    // MCUCR &= ~(1 << ISC01); //Set low level Interrupt
+    // MCUCR = (MCUCR & ~((1 << ISC00) | (1 << ISC01))) | 2 << ISC00;
+    MCUCR &= ~(_BV(ISC01) | _BV(ISC00));  //Set low level Interrupt
+    GIFR  |= _BV(INTF0);  // clear any pending INT0
     // attachInterrupt(0, btnISR, FALLING);
-    MCUCR = (MCUCR & ~((1 << ISC00) | (1 << ISC01))) | 2 << ISC00;
 
-    // in the General Interrupts Mask Register
+    // Enable INT0 in the General Interrupts Mask Register
     GIMSK |= _BV(INT0); // enable INT0 interrupt
-   
-   #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 	// to test on Atmega 328 UNO, Nano or Pro Mini boards
+    
+  #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 	// to test on Atmega 328 UNO, Nano or Pro Mini boards
      attachInterrupt( digitalPinToInterrupt(INT_PIN), myISR, FALLING );
-   #endif
+  #endif
+  sei();
 }
 
 
@@ -257,10 +265,10 @@ void enableInterruptForOnOffButton(void){
   #endif
 
   #ifdef ENABLE_SLEEP_MODE
-  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
-    // wake up and disable sleep
+  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__)  
+    // wake up, do not sleep...
     sleep_disable();
-  #endif
+  #endif 
   #endif
   
   #ifdef SERIAL_DEBUG
@@ -307,7 +315,7 @@ ISR(PCINT0_vect) {  // PCI vect0 is for PCIinterrupt for PortB
   
   #ifdef ENABLE_SLEEP_MODE
   #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__)  
-    // wake up, do not sleep any more...-> shut down :-)
+    // wake up, do not sleep any more...
     sleep_disable();
   #endif 
   #endif
@@ -353,7 +361,7 @@ void loop() {
         #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
           // go to sleep
           sleep_enable();
-          sleep_cpu();   
+          sleep_cpu();  
         #endif
         #endif
       }
@@ -375,7 +383,7 @@ void loop() {
         _delay_ms( KILL_PULSE );
         bitSet( PORTB, KILL_PIN );
         
-        // now listen for confirmation from main uC
+        // now listen for KILL confirmation from the main uC
         pinMode( KILL_PIN, INPUT_PULLUP );
 
         millisOnOffTime = millis();
@@ -417,7 +425,7 @@ void loop() {
            #endif
            if( digitalRead(INT_PIN) ) { // POO button was released, but no confirmation from the main uC; so wait for Timeout; 
                                         // may be break out by confirmation anytime before timeout
-             if( millis() > millisOnOffTime + KILL_TIMEOUT ) { // timeout and back to ON_STATE
+             if( millis() > millisOnOffTime + KILL_CONFIRMATION_TIMEOUT ) { // timeout and go back to ON_STATE
                #ifdef SERIAL_DEBUG
                  Serial.println( "No confirmation from main uC; 1 sec KILL timeout; get back to ON state" );
                #endif
@@ -428,7 +436,7 @@ void loop() {
              }
            } else { // POO button is still pressed, not released
               // EMERGENCY SHUTDOWN - long press on Power ON/OFF button
-              if( millis() > millisOnOffTime + KILL_TIME ) {
+              if( millis() > millisOnOffTime + EMERGENCY_KILL_TIME ) {
                 // is POO button pressed long enogh to shutdown power without confirmation from the main uC?
                 // may be break out by confirmation anytime before timeout
                 #ifdef SERIAL_DEBUG
