@@ -3,15 +3,23 @@
 // by Ralph S Bacon: https://youtu.be/S2y1oAVmxdA 
 //   https://github.com/RalphBacon/173-ATTiny85-Push-Button-On-Off-control
 //
-// Creatively modified algorithm, introduced a Finite-state Machine and ported to ATtiny13 
+// Creatively modified the algorithm, introduced a Finite-state Machine and ported to ATtiny13 
 // by ShaggyDog18@gmail.com, MAR-2020
+// Modified/optimized on APR-2020
 //
 // uController: ATtiny13A
 // Environment: MicroCore, 600kHz internal clock (also set up by fuses), BOD disabled, Micros enabled 
-// 600kHz low_fuses=0x29
-// 
-// Size with both ExternalControl and Sleep features: 838 bytes / 32 bytes -> great for Attiny13 ! 
-// 
+// 600kHz internal clock low_fuses=0x29
+// refer to http://eleccelerator.com/fusecalc/fusecalc.php?chip=attiny13a&LOW=29&HIGH=FF&LOCKBIT=FF
+// Size with both ExternalControl and Sleep features: 766 bytes / 28 bytes -> great for Attiny13 ! 
+//
+// uController: ATtiny25
+// Environment: DIY Attiny, 1MHz internal clock (also set up by fuses), BOD disabled, Micros enabled 
+// 1MHz internal clock low_fuses=0x62
+// refer to http://eleccelerator.com/fusecalc/fusecalc.php?chip=attiny25&LOW=62&HIGH=FF&EXTENDED=FF&LOCKBIT=FF
+// Size with both ExternalControl and Sleep features: 884 bytes / 23 bytes
+//
+//
 // 100% compatible at firmware level if compiled for ATtiny25/45/85!
 // Incompatible with the original author's solution at pins/PCB level because ATtiny13 and ATtiny25/45/85
 // have different pins for INT0 interrupt:
@@ -19,7 +27,6 @@
 //    ATtiny13       - PB1
 // thus, I shifted POO button pin from PB2 to PB1 and 
 //                        LED pin from PB1 to PB0
-//
 //
 //                        ATtiny13A
 // PIN 1 Reset             +-\/-+
@@ -131,15 +138,15 @@ unsigned long millisOnOffTime = 0;
 // length of KILL pulse that to be sent to maim uC to request a KILL confirmation
 #define KILL_PULSE 100  // mSec
 
-// KILL time out - how long do we wait for KILL confirmation back from the main uC
+// KILL time out - how long do we wait for KILL confirmation pulse back from the main uC
 #define KILL_CONFIRMATION_TIMEOUT 1000  // mSec
 
 // Minimum time before shutDown request accepted (mS)
-#define MIN_ON_TIME 3000  // mSec
+#define MIN_ON_TIME 2000  // mSec
 
 #define BUTTON_DEBOUNCE_TIME 10  //mSec
 
-// Foorward declareations
+// Forward declareations
 void powerDownLedFlash();
 void shutDownPower();
 void enableInterruptForOnOffButton(void);
@@ -183,7 +190,7 @@ void setup() {
   pinMode( PWR_PIN, OUTPUT );  // Gate of driving N-ch MOSFET
   pinMode( PWR_LED, OUTPUT );  // Power ON LED (optional)
 
-  // initial state: switch on instantly - do that in POWER_ON_PROCESS state; no need for doing it here in setup()
+  //initial state: switch on instantly - do that in POWER_ON_PROCESS state; no need for doing it here in setup()
   //bitSet( PORTB, PWR_PIN );
   //bitSet( PORTB, PWR_LED );
   
@@ -230,16 +237,27 @@ void disablePCInterruptForKillPin(void){ // disable PC Interrupt for input pin P
 
 
 void enableInterruptForOnOffButton(void){
-  cli();
-  // The Arduino preferred syntax of attaching interrupt not possible for AtTiny13A 
+  cli();  // disable interrupts
   #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__)  || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
-    // We want only on FALLING (not LOW, if possible) set bits 1:0 to zero
-    // MCUCR &= ~(1 << ISC00); //Set low level Interrupt
-    // MCUCR &= ~(1 << ISC01); //Set low level Interrupt
-    // MCUCR = (MCUCR & ~((1 << ISC00) | (1 << ISC01))) | 2 << ISC00;
-    MCUCR &= ~(_BV(ISC01) | _BV(ISC00));  //Set low level Interrupt
-    GIFR  |= _BV(INTF0);  // clear any pending INT0
-    // attachInterrupt(0, btnISR, FALLING);
+    #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) 
+      // The falling edge of INT0 generates an interrupt request; datasheet, page 47
+      // ISC01-ISC00: 1-0
+      bitSet  ( MCUCR, ISC01 );
+      bitClear( MCUCR, ISC00 );
+    #elif defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
+     // Attiny25 does not wake up at falling edge INT0, that's the reason for using a low level INT0:
+     // The low level of INT0 generates an interrupt request; datasheet, page 51
+     // ISC01-ISC00: 0-0
+      bitClear( MCUCR, ISC01 );
+      bitClear( MCUCR, ISC00 );
+     // the above is the same as: 
+     // MCUCR &= ~(1 << ISC01); 
+     // MCUCR &= ~(1 << ISC00);  //Set low level Interrupt
+     // or:
+     // MCUCR &= ~(_BV(ISC01) | _BV(ISC00));  //Set low level Interrupt
+    #endif
+              
+    GIFR |= _BV(INTF0);  // clear any pending INT0
 
     // Enable INT0 in the General Interrupts Mask Register
     GIMSK |= _BV(INT0); // enable INT0 interrupt
@@ -247,19 +265,24 @@ void enableInterruptForOnOffButton(void){
   #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 	// to test on Atmega 328 UNO, Nano or Pro Mini boards
      attachInterrupt( digitalPinToInterrupt(INT_PIN), myISR, FALLING );
   #endif
-  sei();
+  sei();  // enable interrupts
 }
 
 
-//------
-//
-//------
 // Standard interrupt vector (only on LOW / FALLING )
 #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
   ISR( INT0_vect ) {
 #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__)  // ATMega 328 for testing
   void myISR(void) {
 #endif
+  // disble itself: disable INT0 ext interrupt for POO button
+  // untill shutDown completed (when we can power up again )
+  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
+    GIMSK &= ~_BV(INT0);  // disable INT0 interrupt  
+  #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 
+    detachInterrupt(0);
+  #endif 
+
   #ifdef ALLOW_EXTERNAL_KILL_REQUEST
     disablePCInterruptForKillPin();
   #endif
@@ -273,28 +296,9 @@ void enableInterruptForOnOffButton(void){
   
   #ifdef SERIAL_DEBUG
     Serial.println("ISR for button is called");
-  #endif
-   
-  // keep track of when we entered this routine
-  static volatile unsigned long prevMillis = 0;  
-  // POO button is pushed. Check for debounce 10mS 
-  if( millis() > prevMillis + BUTTON_DEBOUNCE_TIME ) {
-    // disble itself: disable INT0 ext interrupt for POO button
-    // untill shutDown completed (when we can power up again )
-    #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
-      GIMSK &= ~_BV(INT0);  // disable INT0 interrupt  
-    #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 
-      detachInterrupt(0);
-    #endif    
-    
-    #ifdef SERIAL_DEBUG
-      Serial.println( "ISR is OK" );
-    #endif   
-    prevMillis = millis();
-    togglePowerRequest = true;
-  }
-}  
-
+  #endif 
+  togglePowerRequest = true;
+}  // ISR or myISR
 
 
 #ifdef ALLOW_EXTERNAL_KILL_REQUEST
@@ -315,7 +319,7 @@ ISR(PCINT0_vect) {  // PCI vect0 is for PCIinterrupt for PortB
   
   #ifdef ENABLE_SLEEP_MODE
   #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__)  
-    // wake up, do not sleep any more...
+    // wake up, do not sleep...
     sleep_disable();
   #endif 
   #endif
@@ -457,8 +461,8 @@ void loop() {
         #endif
         shutDownPower(); //shut off the power (instant off)
       }
-      #endif 
-       
+      #endif
+      
       break;
   } //switch( stateMachine )
 } //--- end of loop()
