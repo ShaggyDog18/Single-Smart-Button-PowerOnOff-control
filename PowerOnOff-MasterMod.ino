@@ -146,7 +146,9 @@ unsigned long millisOnOffTime = 0;
 
 #define BUTTON_DEBOUNCE_TIME 10  //mSec
 
+//----------------------
 // Forward declareations
+//----------------------
 void powerDownLedFlash();
 void shutDownPower();
 void enableInterruptForOnOffButton(void);
@@ -159,14 +161,16 @@ void enableInterruptForOnOffButton(void);
 //mySerial comms - plug in a USB-2-mySerial device to PB0 (pin #5) for Attiny85
 #ifdef SERIAL_DEBUG
   #if defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__)
-    SendOnlySoftwareSerial Serial( PB0 );
+		SendOnlySoftwareSerial Serial( PB0 );
   #elif defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) 
-	  SendOnlySoftwareSerial Serial( PB2 ); // did not test :-(
+		SendOnlySoftwareSerial Serial( PB2 ); // did not test :-(
   #endif
 #endif
 
 
-// Define Finite-state Machine
+//--------------------------------
+// Define The Finite-state Machine
+//--------------------------------
 enum stateMachine_t : byte {
   POWER_ON_PROCESS = 0,
   START_UP_DELAY,
@@ -217,6 +221,9 @@ void setup() {
 } //-- end of setup()
 
 
+//----------------------------------------
+//    INTERRUPT ROUTINES: ENABLE / DISABLE
+//----------------------------------------
 #ifdef ALLOW_EXTERNAL_KILL_REQUEST
 void enablePCInterruptForKillPin(void){ // enable PC Interrupt for input pin PB3  
   #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__)  || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
@@ -226,6 +233,7 @@ void enablePCInterruptForKillPin(void){ // enable PC Interrupt for input pin PB3
     PCMSK0 |= _BV( PCINT3 ); // pin11, PCINT3 is in the PCMSK0; set PCI for pin 11
   #endif  
 }
+
 
 void disablePCInterruptForKillPin(void){ // disable PC Interrupt for input pin PB3 
   #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__)  || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__)
@@ -268,6 +276,9 @@ void enableInterruptForOnOffButton(void){
 }
 
 
+//------------------------------------
+//    INTERRUPT ROUTINES: INT0 AND PCI
+//------------------------------------
 // Standard interrupt vector (only on LOW / FALLING )
 #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__) 
   ISR( INT0_vect ) {
