@@ -183,17 +183,19 @@ void setup() {
     Serial.begin(9600);
     Serial.println("Setup starts");
   #endif
-  
+
+  // update: For low power consumption - all pins as input with pullups; Attiny13 datasheet, p.54
+  #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__)
+    DDRB  = 0x00;   // set all pins of PORTB as Inputs
+    PORTB = 0xFF;   // B11111111;   // PULLUP all pins  
+  #endif
+
   //keep the KILL command a WEAK HIGH untill we need it; listen to the external shut down request if allowed
   pinMode( KILL_PIN, INPUT_PULLUP );  // KILL pin to interface with main uController
   pinMode( INT_PIN, INPUT_PULLUP );  // Interrupt pin for Power On/Off button
   pinMode( PWR_PIN, OUTPUT );  // Gate of driving N-ch MOSFET
   pinMode( PWR_LED, OUTPUT );  // Power ON LED (optional)
 
-  //initial state: switch on instantly - do that in POWER_ON_PROCESS state; no need for doing it here in setup()
-  //bitSet( PORTB, PWR_PIN );
-  //bitSet( PORTB, PWR_LED );
-  
   #if defined(__AVR_ATtiny13__) || defined(__AVR_ATtiny13A__) || defined(__AVR_ATtiny85__) || defined(__AVR_ATtiny45__) || defined(__AVR_ATtiny25__)
     // For low power consumption: 
     ADCSRA &= ~_BV(ADEN); // set ADC OFF
@@ -250,17 +252,14 @@ void enableInterruptForOnOffButton(void){
      // ISC01-ISC00: 0-0
       bitClear( MCUCR, ISC01 );
       bitClear( MCUCR, ISC00 );
-     // the above is the same as: 
-     // MCUCR &= ~(1 << ISC01); 
-     // MCUCR &= ~(1 << ISC00);  //Set low level Interrupt
-     // or:
-     // MCUCR &= ~(_BV(ISC01) | _BV(ISC00));  //Set low level Interrupt
     #endif
               
-    GIFR |= _BV(INTF0);  // clear any pending INT0
+    // GIFR |= _BV(INTF0);    // clear any pending INT0
+	// bitSet( GIFR, INTF0 ); // same as above
 
     // Enable INT0 in the General Interrupts Mask Register
     GIMSK |= _BV(INT0); // enable INT0 interrupt
+	// bitSet( GIMSK, INT0 );  // same as above
     
   #elif defined(__AVR_ATmega328__) || defined(__AVR_ATmega328P__) 	// to test on Atmega 328 UNO, Nano or Pro Mini boards
      attachInterrupt( digitalPinToInterrupt(INT_PIN), myISR, FALLING );
@@ -462,11 +461,9 @@ void loop() {
         shutDownPower(); //shut off the power (instant off)
       }
       #endif
-      
       break;
   } //switch( stateMachine )
 } //--- end of loop()
-
 
 
 // flash Power LED to indicate shutting down.
@@ -480,11 +477,11 @@ void powerDownLedFlash() {
   }
 }
 
+
 void shutDownPower() {
-  // Turn off power on LED and MOSFET
-  // Serial.println( "Power goes off" );
-    bitClear( PORTB, PWR_PIN );
-    _delay_ms(5000); // delay to allow power off, 
-	                   // need it in case of large decupling capacitors that can still provide energy after MOSFET cuts the line 
-    // no life after that point :-)
+  // Turn off MOSFET
+  bitClear( PORTB, PWR_PIN );
+  _delay_ms(5000); // delay to allow power off, 
+                  // need it in case of large decupling capacitors that can still provide energy after MOSFET cuts the line 
+  // no life after that point :-)
 }
