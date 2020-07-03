@@ -204,8 +204,13 @@ void setup() {
     // For low power consumption: 
     ADCSRA &= ~_BV(ADEN); // set ADC OFF
     ACSR |= _BV(ACD);     // switch off Comparator
+
+    // addition: JUN-2020
+    MCUCR = bit(BODS) | bit(BODSE); // turn off brown-out enable in software
+    MCUCR = bit(BODS);
+    
     #ifdef ENABLE_SLEEP_MODE 
-      set_sleep_mode(SLEEP_MODE_PWR_DOWN);  // set up sleep mode for Attiny13
+      set_sleep_mode(SLEEP_MODE_PWR_DOWN);  // define sleep mode for Attiny13
     #endif
 
     #ifdef ALLOW_EXTERNAL_KILL_REQUEST
