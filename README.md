@@ -59,4 +59,4 @@ EasyEDA links to universal PCBs (compatible with ATtinny13/25/45/85):
  - Dual SOIC-8 MOSFET AO4606,  up to 6A load: https://easyeda.com/Sergiy/smart-power-switch-attiny13_copy_copy
  - Powerful SOIC-8 MOSFET AO4407A, up to 10A: https://easyeda.com/Sergiy/smart-power-switch-attiny13_copy
 
-**If you like and use this solution please consider making a small donation using [PayPal](https://paypal.me/shaggyDog18/3USD)**
+**If you like and use this solution, please, consider making a small donation using [PayPal](https://paypal.me/shaggyDog18/3USD)**
